@@ -1,20 +1,12 @@
+(module chain (make-chain generate-sentence)
 ;; Generate Markov model from a list of sentences (plain-text)
 
+(import chicken scheme regex)
 (use srfi-1)
 (use srfi-13)
 (use srfi-69)
 (use extras)
 (require-library regex)
-(import regex)
-
-(define (main)
-  (if (= 0 (length (command-line-arguments)))
-    (begin
-      (display "No input corpus specified")
-      (exit))
-    (let ((chain (make-chain (car (command-line-arguments)))))
-      ;(print-chain chain)
-      (display (generate-sentence chain)))))
 
 ;; blacklisted words will be ignored silently
 (define blacklist '("nbsp" "ndash"))
@@ -111,4 +103,4 @@
     ls))
 
 ;; go!
-(main)
+)

@@ -1,8 +1,8 @@
 SC=csc
-SCFLAGS=
+SCFLAGS=-O4
 
-chain: chain.ss
-	$(SC) $(SCFLAGS) chain.ss
+chain.so: chain.ss
+	$(SC) $(SCFLAGS) -j chain -s chain.ss
 
 one_meelyun_sentences: one_meelyun_sentences.bz2
 	bunzip2 one_meelyun_sentences.bz2
