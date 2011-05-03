@@ -1,6 +1,7 @@
 ;; Generate Markov model from a list of sentences (plain-text)
 
 (use srfi-69)
+(use srfi-1)
 (use extras)
 (require-library regex)
 (import regex)
@@ -10,7 +11,7 @@
     (begin
       (display "No input corpus specified")
       (exit))
-    (print-chain (make-chain (car (command-line-arguments))))))
+    (display (generate-sentence (make-chain (car (command-line-arguments)))))))
 
 (define (make-chain input-file)
   (with-input-from-file input-file
@@ -62,5 +63,42 @@
                     (hash-table-map word-entry
                                     (lambda (next next-prob)
                                       (format #t "\t~a\t~a\n" next next-prob))))))
+
+(define (generate-sentence chain)
+  (let* ((keys (hash-table-keys chain))
+         (count (hash-table-size chain))
+         (first (choose-random (filter-capitalized keys))))
+    (fold (lambda (word sentence)
+            (cond
+              ((or (equal? word ",") (equal? word "."))
+               (string-append sentence word))
+              (else
+                (string-append sentence " " word))))
+          first
+          (let loop ((start first))
+            (let* ((word-entry (hash-table-ref chain start))
+                   (choice (choose-random word-entry)))
+              (if choice
+                (cons choice (loop choice))
+                '()))))))
+
+(define (choose-random ls)
+  (cond
+    ((hash-table? ls)
+     (let* ((keys (hash-table-keys ls))
+            (count (hash-table-size ls)))
+       (list-ref keys (random count))))
+    (else (let ((len (length ls)))
+            (list-ref ls (random len))))))
+
+(define (filter-capitalized ls)
+  (filter 
+    (lambda (word)
+      (cond
+        ((= (string-length word) 0) #f)
+        ((char-upper-case? (string-ref word 0)) #t)
+        (else #f)))
+    ls))
+
 ;; go!
 (main)
