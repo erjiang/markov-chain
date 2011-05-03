@@ -1,7 +1,8 @@
 ;; Generate Markov model from a list of sentences (plain-text)
 
-(use srfi-69)
 (use srfi-1)
+(use srfi-13)
+(use srfi-69)
 (use extras)
 (require-library regex)
 (import regex)
@@ -11,10 +12,12 @@
     (begin
       (display "No input corpus specified")
       (exit))
-    (display (generate-sentence (make-chain (car (command-line-arguments)))))))
+    (let ((chain (make-chain (car (command-line-arguments)))))
+      ;(print-chain chain)
+      (display (generate-sentence chain)))))
 
 ;; blacklisted words will be ignored silently
-(define blacklist '("nbsp"))
+(define blacklist '("nbsp" "ndash"))
 (define (filter-blacklisted ls)
   (filter 
     (lambda (word)
@@ -52,13 +55,8 @@
   (lambda (chain word next)
     (if (hash-table-exists? chain word)
       (let ((word-entry (hash-table-ref chain word)))
-        (if (hash-table-exists? word-entry next)
-          (hash-table-set! word-entry next
-                           (+ 1 (hash-table-ref word-entry next)))
-          (hash-table-set! word-entry next 1)))
-      (let ((new-word-entry (make-hash-table)))
-        (hash-table-set! new-word-entry next 1)
-        (hash-table-set! chain word new-word-entry)))))
+        (hash-table-set! chain word (cons next word-entry)))
+      (hash-table-set! chain word (list next)))))
 
 (define split-regex (regexp "(,|[\\w\\d'\\.]*[\\w\\d])"))
 (define (split-line line)
@@ -69,9 +67,11 @@
   (hash-table-map chain
                   (lambda (word word-entry)
                     (format #t "~a\n" word)
-                    (hash-table-map word-entry
-                                    (lambda (next next-prob)
-                                      (format #t "\t~a\t~a\n" next next-prob))))))
+                    (for-each 
+                         (lambda (word)
+                           (format #t "\t~a\n" word))
+                         ;(sort word-entry string-compare)))))
+                         word-entry))))
 
 (define (generate-sentence chain)
   (let* ((keys (hash-table-keys chain))
@@ -79,7 +79,8 @@
          (first (choose-random (filter-capitalized keys))))
     (fold (lambda (word sentence)
             (cond
-              ((or (equal? word ",") (equal? word "."))
+              ((let ((first (string-ref word 0)))
+                 (or (eq? first #\,) (eq? first #\.)))
                (string-append sentence word))
               (else
                 (string-append sentence " " word))))
