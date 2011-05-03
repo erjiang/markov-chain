@@ -13,6 +13,15 @@
       (exit))
     (display (generate-sentence (make-chain (car (command-line-arguments)))))))
 
+;; blacklisted words will be ignored silently
+(define blacklist '("nbsp"))
+(define (filter-blacklisted ls)
+  (filter 
+    (lambda (word)
+      (if (member word blacklist) #f
+        #t))
+    ls))
+
 (define (make-chain input-file)
   (with-input-from-file input-file
     (lambda ()
@@ -23,7 +32,7 @@
               chain
               (let ((words (split-line line)))
                 (begin
-                  (chain-sentence! chain words)
+                  (chain-sentence! chain (filter-blacklisted words))
                   (loop!))))))))))
 
 (define (chain-sentence! chain words)
