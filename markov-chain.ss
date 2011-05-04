@@ -1,12 +1,12 @@
 (module markov-chain (make-chain generate-sentence)
 ;; Generate Markov model from a list of sentences (plain-text)
 
-(import chicken scheme regex)
+(import chicken scheme)
 (use srfi-1)
 (use srfi-13)
 (use srfi-69)
 (use extras)
-(require-library regex)
+(use irregex)
 
 ;; blacklisted words will be ignored silently
 (define blacklist '("nbsp" "ndash"))
@@ -50,9 +50,15 @@
         (hash-table-set! chain word (cons next word-entry)))
       (hash-table-set! chain word (list next)))))
 
-(define split-regex (regexp "(,|[\\w\\d'\\.]*[\\w\\d])"))
+(define split-regex
+  (irregex '(or ","
+                (seq (* (or #\'
+                            #\.
+                            alphanumeric))
+                     alphanumeric))))
+
 (define (split-line line)
-  (string-split-fields split-regex line))
+  (irregex-extract split-regex line))
 
 (define (print-chain chain)
   (format #t "Hash table has ~a entries\n" (hash-table-size chain))
