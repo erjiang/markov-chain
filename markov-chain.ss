@@ -1,4 +1,4 @@
-(module chain (make-chain generate-sentence)
+(module markov-chain (make-chain generate-sentence)
 ;; Generate Markov model from a list of sentences (plain-text)
 
 (import chicken scheme regex)

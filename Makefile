@@ -1,8 +1,8 @@
 SC=csc
 SCFLAGS=-O4
 
-chain.so: chain.ss
-	$(SC) $(SCFLAGS) -j chain -s chain.ss
+markov-chain.so: markov-chain.ss
+	$(SC) $(SCFLAGS) -j markov-chain -s markov-chain.ss
 
 one_meelyun_sentences: one_meelyun_sentences.bz2
 	bunzip2 one_meelyun_sentences.bz2
