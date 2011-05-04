@@ -85,7 +85,7 @@
   (let* ((keys (hash-table-keys chain))
          (count (hash-table-size chain))
          (first (choose-random (filter-capitalized keys)))
-         (second (choose-random (hash-table-ref chain first))))
+         (second (choose-random (hash-table-keys (hash-table-ref chain first)))))
     (fold (lambda (word sentence)
             (cond
               ((let ((first (string-ref word 0)))
@@ -96,9 +96,18 @@
           (string-append first " " second)
           (let loop ((word1 first)
                      (word2 second))
+            (format #t "Looking up ~a -> ~a\n" word1 word2)
             (let* ((word1-entry (hash-table-ref chain word1))
-                   (word2-entry (hash-table-ref word1-entry word2))
-                   (choice (choose-random word2-entry)))
+                   (word2-entry (hash-table-ref/default word1-entry word2 #f))
+                   (choice (if word2-entry
+                             (choose-random word2-entry)
+                             (let ((word2-entry (hash-table-ref/default chain word2 #f)))
+                               (if word2-entry
+                                 (choose-random
+                                   (hash-table-ref/default
+                                     word2-entry
+                                     (choose-random word2-entry) #f))
+                                 #f)))))
               (if choice
                 (cons choice (loop word2 choice))
                 '()))))))
@@ -118,7 +127,7 @@
 (define filter-capitalized
   (let ((cached-lists (make-hash-table eq?)))
     (lambda (ls)
-      (let ((cached-keys (hash-table-ref cached-lists ls #f)))
+      (let ((cached-keys (hash-table-ref/default cached-lists ls #f)))
         (if (not cached-keys)
           (begin
             (let ((filtered-list 
