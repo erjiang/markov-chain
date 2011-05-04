@@ -33,10 +33,11 @@
 (define (chain-sentence! chain words)
   (cond
     ((null? words) #f)
-    ((null? (cdr words))
-     (chain-add! chain (car words) #f)) ;; end of sentence
+    ((null? (cdr words)) #f)
+    ((null? (cddr words))
+     (chain-add! chain (car words) (cadr words) #f)) ;; end of sentence
     (else (begin
-            (chain-add! chain (car words) (cadr words))
+            (chain-add! chain (car words) (cadr words) (caddr words))
             (chain-sentence! chain (cdr words))))))
 
 ;;
@@ -44,11 +45,15 @@
 ;; The end of a sentence is marked by #f.
 ;;
 (define chain-add!
-  (lambda (chain word next)
-    (if (hash-table-exists? chain word)
-      (let ((word-entry (hash-table-ref chain word)))
-        (hash-table-set! chain word (cons next word-entry)))
-      (hash-table-set! chain word (list next)))))
+  (lambda (chain word1 word2 next)
+    (if (hash-table-exists? chain word1)
+      (let ((word2-entry (hash-table-ref chain word1)))
+        (if (hash-table-exists? word2-entry next)
+          (hash-table-set! word2-entry word2 (cons next (hash-table-ref word2-entry next)))
+          (hash-table-set! word2-entry word2 (list next))))
+      (let ((word2-entry (make-hash-table)))
+        (hash-table-set! word2-entry word2 (list next))
+        (hash-table-set! chain word1 word2-entry)))))
 
 (define split-regex
   (irregex '(or ","
@@ -56,6 +61,8 @@
                             #\.
                             alphanumeric))
                      alphanumeric))))
+;;(define split-regex
+;;  (irregex '(* (~ whitespace))))
 
 (define (split-line line)
   (irregex-extract split-regex line))
@@ -63,18 +70,22 @@
 (define (print-chain chain)
   (format #t "Hash table has ~a entries\n" (hash-table-size chain))
   (hash-table-map chain
-                  (lambda (word word-entry)
-                    (format #t "~a\n" word)
-                    (for-each 
-                         (lambda (word)
-                           (format #t "\t~a\n" word))
-                         ;(sort word-entry string-compare)))))
-                         word-entry))))
+    (lambda (word1 word2-entry)
+      (format #t "~a\n" word1)
+      (hash-table-map word2-entry
+                      (lambda (word2 words-next)
+                        (format #t "\t~a\n" word2)
+                        (for-each 
+                          (lambda (word)
+                            (format #t "\t\t~a\n" word))
+                          ;(sort word-entry string-compare)))))
+                          words-next))))))
 
 (define (generate-sentence chain)
   (let* ((keys (hash-table-keys chain))
          (count (hash-table-size chain))
-         (first (choose-random (filter-capitalized keys))))
+         (first (choose-random (filter-capitalized keys)))
+         (second (choose-random (hash-table-ref chain first))))
     (fold (lambda (word sentence)
             (cond
               ((let ((first (string-ref word 0)))
@@ -82,12 +93,14 @@
                (string-append sentence word))
               (else
                 (string-append sentence " " word))))
-          first
-          (let loop ((start first))
-            (let* ((word-entry (hash-table-ref chain start))
-                   (choice (choose-random word-entry)))
+          (string-append first " " second)
+          (let loop ((word1 first)
+                     (word2 second))
+            (let* ((word1-entry (hash-table-ref chain word1))
+                   (word2-entry (hash-table-ref word1-entry word2))
+                   (choice (choose-random word2-entry)))
               (if choice
-                (cons choice (loop choice))
+                (cons choice (loop word2 choice))
                 '()))))))
 
 (define (choose-random ls)
@@ -99,14 +112,26 @@
     (else (let ((len (length ls)))
             (list-ref ls (random len))))))
 
-(define (filter-capitalized ls)
-  (filter 
-    (lambda (word)
-      (cond
-        ((= (string-length word) 0) #f)
-        ((char-upper-case? (string-ref word 0)) #t)
-        (else #f)))
-    ls))
+;;
+;; filter-capitalized only works on its first invocation
+;;
+(define filter-capitalized
+  (let ((cached-lists (make-hash-table eq?)))
+    (lambda (ls)
+      (let ((cached-keys (hash-table-ref cached-lists ls #f)))
+        (if (not cached-keys)
+          (begin
+            (let ((filtered-list 
+                    (filter
+                      (lambda (word)
+                        (cond 
+                          ((= (string-length word) 0) #f)
+                          ((char-upper-case? (string-ref word 0)) #t)
+                          (else #f)))
+                      ls)))
+              (hash-table-set! cached-lists ls filtered-list)
+              filtered-list))
+          cached-keys)))))
 
 ;; go!
 )

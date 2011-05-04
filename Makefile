@@ -1,5 +1,5 @@
 SC=csc
-SCFLAGS=-O4
+SCFLAGS=
 
 markov-chain.so: markov-chain.ss
 	$(SC) $(SCFLAGS) -j markov-chain -s markov-chain.ss
