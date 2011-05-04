@@ -1,0 +1,7 @@
+(compile -O4 -j markov-chain -s markov-chain.ss)
+(compile -O2 -s markov-chain.import.scm)
+
+(install-extension
+  'markov-chain
+  '("markov-chain.so" "markov-chain.import.so")
+  '((version 0.2-20110504)))

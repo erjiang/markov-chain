@@ -1,0 +1,9 @@
+(
+(license "GPLv3")
+
+(category data)
+(needs irregex)
+
+(author "Eric Jiang")
+(synopsis "Generates random sentences based on a text corpus.")
+)
